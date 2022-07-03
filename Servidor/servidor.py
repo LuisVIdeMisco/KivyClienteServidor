@@ -17,16 +17,18 @@ class Servidor(threading.Thread):
     sock = ""
     ssock = ""
     encendido = True
+    dir = ""
 
     def __init__(self, dir_ip="localhost", port=12400):
-        super().__init__()
+        super().__init__(daemon=True)
         self.dir_ip = dir_ip
         self.port = port
-
+        self.dir = os.path.dirname(__file__)
+        
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        self.context.verify_mode = ssl.CERT_REQUIRED
-        self.context.load_cert_chain('serverCert.pem', 'claveServer.pem')
-        self.context.load_verify_locations('certCA.pem')
+        self.context.verify_mode = ssl.CERT_OPTIONAL
+        self.context.load_cert_chain(self.dir + '/serverCert.pem', self.dir + '/claveServer.pem')
+        self.context.load_verify_locations(self.dir + '/certCA.pem')
 
         # Creamos el socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -232,8 +234,17 @@ class Servidor(threading.Thread):
                 if not th.is_alive():
                     th.join()
                     self.hilos.remove(th)
+        
+        self.ssock.close()
+        self.sock.close()
 
     def terminar(self):
         self.encendido = False
+        self.ssock.close()
+
+    def cerrar(self):
+         th = threading.Thread(target=self.terminar, daemon=True)
+         th.start()
+         th.join
 
 
