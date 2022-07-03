@@ -25,11 +25,12 @@ def conectar():
     ssock.connect(server_address)
     return ssock
 
+dir = os.path.dirname(__file__)
 
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 context.verify_mode = ssl.CERT_REQUIRED
-context.load_cert_chain('clientCert.pem', 'claveClient.pem')
-context.load_verify_locations('certCA.pem')
+context.load_cert_chain(dir + '/clientCert.pem', dir + '/claveClient.pem')
+context.load_verify_locations(dir + '/certCA.pem')
 
 dir_ip = 'localhost'
 serv_port = 12400
