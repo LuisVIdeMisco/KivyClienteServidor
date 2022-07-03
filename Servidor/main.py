@@ -23,7 +23,7 @@ from kivy.properties import StringProperty
 
 from kivy.metrics import dp
 
-from Servidor import Servidor
+from servidor import Servidor
 
 class ServidorArranc(Screen):
     root = None
