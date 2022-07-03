@@ -10,6 +10,7 @@ import ssl
 import os
 import sys
 from kivy.app import App
+from kivy.core.window import Window
 from kivy.uix.widget import Widget
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -25,11 +26,31 @@ from kivy.metrics import dp
 from Servidor import Servidor
 
 class ServidorArranc(Screen):
-    def __init__(self, **kw):
+    root = None
+    et = ""
+    lbl = None
+    def __init__(self, root, **kw):
         super().__init__(**kw)
+        self.root = root
 
-        et = Label(text="Tamos activos")
-        self.add_widget(et)
+        self.lbl = Label(pos_hint={'center_y': 0.65, 'center_x':0.5})
+        bt = Button(text="Apagar", on_press=self.apagar, size_hint=(0.27, 0.2),
+                    pos_hint={'center_y': 0.25, 'center_x':0.5})
+        self.add_widget(self.lbl)
+        self.add_widget(bt)
+
+    def inicio(self):
+        dIP = self.root.servidor.dir_ip
+        port = self.root.servidor.port
+        et = "Servidor escuchando en la dirección " + str(dIP) + ":" + str(port) + "\n"
+        et += "Cerrar esta ventana supone apagar el servidor"
+        self.lbl.text = et
+
+    def apagar(self, instance):
+        self.lbl.text = "Apagando"
+        self.root.servidor.cerrar()
+        self.root.servidor.join()
+        App.get_running_app().stop()
 
 class ServidorInterf(Screen):
     root = None
@@ -50,17 +71,19 @@ class ServidorInterf(Screen):
 
 
         etIP = Label(text="Dirección IP: ", size_hint=(None,None), height=dp(30), pos=(dp(17),dp(113)))
-        self.tiIP = TextInput(multiline=False, hint_text="127.0.0.1", size_hint=(None,None), height=dp(30), 
-                                width=dp(200), pos=(dp(135), dp(113)))
+        self.tiIP = TextInput(write_tab=False, multiline=False, hint_text="127.0.0.1", size_hint=(None,None),
+                                height=dp(30), width=dp(200), pos=(dp(135), dp(113)))
 
         #blPort = BoxLayout(height=dp(40), width=dp(500))
         etPort = Label(text="Puerto: ", size_hint=(None,None), height=dp(30), pos=(dp(0),dp(83)))
-        self.tiPort = TextInput(multiline=False, hint_text="12400", size_hint=(None,None), height=dp(30),
-                                width=dp(200), pos=(dp(135), dp(83)))
+        self.tiPort = TextInput(write_tab=False, multiline=False, hint_text="12400", size_hint=(None,None),
+                                height=dp(30), width=dp(200), pos=(dp(135), dp(83)), input_filter='int')
 
         self.etErr = Label(height=dp(75), width=dp(580), pos=(dp(0),dp(-35)))
-        bInt = Button(text="Arrancar", size_hint=(0.27, 0.2), on_press=self.iniciar, pos_hint={'center_y': 0.62, 'right':0.9})
-        bDir = Button(text="Directorio", size_hint=(0.27, 0.2), on_release=self.escogerDir, pos_hint={'center_y': 0.85, 'right':0.9})
+        bInt = Button(text="Arrancar", size_hint=(0.27, 0.2), on_press=self.iniciar, 
+                        pos_hint={'center_y': 0.62, 'right':0.9})
+        bDir = Button(text="Directorio", size_hint=(0.27, 0.2), on_release=self.escogerDir,
+                        pos_hint={'center_y': 0.85, 'right':0.9})
 
         self.add_widget(etIP)
         self.add_widget(etPort)
@@ -90,11 +113,22 @@ class ServidorInterf(Screen):
     def iniciar(self, instance):
         ipT = self.tiIP.text
 
+        elementos = ipT.split()
+        if len(elementos) > 1:
+            self.etErr.text = "El campo IP tiene más de una dirección"
+            return
+
+        puerto = self.tiPort.text
+        elementos = puerto.split()
+        if len(elementos) > 1:
+            self.etErr.text = "Se ha dado más de un puerto"
+            return
+
         if not self.checkIP(ipT):
             self.etErr.text = "El campo IP no es válido o está vacío"
             return
-        
-        puerto = int(self.tiPort.text)
+
+        puerto = int(puerto)
         if puerto < 0:
             self.etErr.text = "El puerto dado no es correcto"
 
@@ -105,6 +139,7 @@ class ServidorInterf(Screen):
         self.root.servidor.start()
 
         sig = self.root.get_screen("Arrancado")
+        sig.inicio()
         self.root.switch_to(sig)
 
     def escogerDir(self, instance):
@@ -117,7 +152,7 @@ class Manejador(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.add_widget(ServidorInterf(self, name='Inicio'))
-        self.add_widget(ServidorArranc(name="Arrancado"))
+        self.add_widget(ServidorArranc(self, name="Arrancado"))
 
 class ServidorApp(App):
     def build(self):
